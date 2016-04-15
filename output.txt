@@ -1,0 +1,30 @@
+Creating database...
+
+
+Running buffer manager tests...
+
+  Test 1 allocates pages, writes and reads them
+  - Allocate more pages than there are frames
+  - Write something on each one
+  - Read that something back from each one
+  - Free the allocated pages
+  Test 1 completed successfully.
+
+  Test 2 exercises some illegal buffer manager operations:
+  - Try to pin more pages than there are unpinned frames
+  --> Failed as expected 
+
+  - Try to free a doubly-pinned page
+  --> Failed as expected 
+
+  - Try to unpin a page not in the buffer pool
+  --> Failed as expected 
+
+  Test 2 completed successfully.
+
+  Test 3 does more reading and writing
+  - Allocate, pin and dirty some new pages, one at a time, and unpin every other page
+  - Read the written pages and unpin them
+  Test 3 completed successfully.
+
+All buffer manager tests completed successfully!
