@@ -15,8 +15,8 @@ public class Convert {
     return (char) data[pos];
 
   } // public static char getCharValue(int pos, byte[] data)
-
   /**
+
    * Writes a unicode character into the given byte array at the specified
    * position.
    */
