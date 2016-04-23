@@ -9,17 +9,17 @@ import diskmgr.*;
 import java.util.HashMap;
 
 /**
- * <h3>Minibase Buffer Manager</h3>
+ * Minibase Buffer Manager
  * The buffer manager manages an array of main memory pages.  The array is
  * called the buffer pool, each page is called a frame.
  * It provides the following services:
- * <ol>
- * <li>Pinning and unpinning disk pages to/from frames
- * <li>Allocating and deallocating runs of disk pages and coordinating this with
+ * 
+ * Pinning and unpinning disk pages to/from frames
+ * Allocating and deallocating runs of disk pages and coordinating this with
  * the buffer pool
- * <li>Flushing pages from the buffer pool
- * <li>Getting relevant data
- * </ol>
+ * Flushing pages from the buffer pool
+ * Getting relevant data
+ * 
  * The buffer manager is used by access methods, heap files, and
  * relational operators.
  */
@@ -30,6 +30,9 @@ public class BufMgr implements GlobalConst {
 
     // page_mapping will map a PageID.pid to the frametab and buffer_pool index
     private HashMap<Integer, Integer> page_mapping;
+    
+    // isFull keeps track of if the buffer is full
+    private boolean isFull;
 
     /**
      * Constructs a buffer manager by initializing member data.
@@ -41,6 +44,7 @@ public class BufMgr implements GlobalConst {
         buffer_pool = new Page[numframes];
         frametab = new FrameDesc[numframes];
         page_mapping = new HashMap<>();
+        isFull = false;
 
         for (int i = 0; i < numframes; i++) {
             buffer_pool[i] = new Page();
@@ -51,11 +55,11 @@ public class BufMgr implements GlobalConst {
     /**
      * The result of this call is that disk page number pageno should reside in
      * a frame in the buffer pool and have an additional pin assigned to it,
-     * and mempage should refer to the contents of that frame. <br><br>
-     * <p>
+     * and mempage should refer to the contents of that frame. 
+     *
      * If disk page pageno is already in the buffer pool, this simply increments
-     * the pin count.  Otherwise, this<br>
-     * <pre>
+     * the pin count.  Otherwise, this
+     * 
      * 	uses the replacement policy to select a frame to replace
      * 	writes the frame's contents to disk if valid and dirty
      * 	if (contents == PIN_DISKIO)
@@ -63,28 +67,27 @@ public class BufMgr implements GlobalConst {
      * 	else (contents == PIN_MEMCPY)
      * 		copy mempage into chosen frame
      * 	[omitted from the above is maintenance of the frame table and hash map]
-     * </pre>
+     * 
      *
      * @param pageno   identifies the page to pin
      * @param mempage  An output parameter referring to the chosen frame.  If
      *                 contents==PIN_MEMCPY it is also an input parameter which is copied into
      *                 the chosen frame, see the contents parameter.
-     * @param contents Describes how the contents of the frame are determined.<br>
-     *                 If PIN_DISKIO, read the page from disk into the frame.<br>
-     *                 If PIN_MEMCPY, copy mempage into the frame.<br>
-     *                 If PIN_NOOP, copy nothing into the frame - the frame contents are irrelevant.<br>
+     * @param contents Describes how the contents of the frame are determined.
+     *                 If PIN_DISKIO, read the page from disk into the frame.
+     *                 If PIN_MEMCPY, copy mempage into the frame.
+     *                 If PIN_NOOP, copy nothing into the frame - the frame contents are irrelevant.
      *                 Note: In the cases of PIN_MEMCPY and PIN_NOOP, disk I/O is avoided.
      * @throws IllegalArgumentException if PIN_MEMCPY and the page is pinned.
      * @throws IllegalStateException    if all pages are pinned (i.e. pool is full)
      */
     public void pinPage(PageId pageno, Page mempage, int contents) {
-        if (this.getNumUnpinned() == 0) {
-            throw new IllegalStateException("All pages are pinned, the pool is full");
-        }
+        
         if (page_mapping.containsKey(pageno.pid)) {
             // If this is already in the buffer pool, just increment pin count
             frametab[page_mapping.get(pageno.pid)].increment_pin_count(); 
         } else {
+            
             // Otherwise we need to find space in our buffer pool for the page depending on what contents is
             switch (contents) {
                 case PIN_DISKIO:
@@ -103,6 +106,10 @@ public class BufMgr implements GlobalConst {
                     // content argument contained an invalid value...
                     throw new IllegalArgumentException("contents argument did not contain a valid value");
             }
+            
+            //if (this.getNumUnpinned() == 0) {
+            //    throw new IllegalStateException("All pages are pinned, the pool is full");
+            //}
         }
         
 
@@ -179,9 +186,20 @@ public class BufMgr implements GlobalConst {
      * @throws IllegalArgumentException if the page is not in the buffer pool
      */
     public void flushPage(PageId pageno) {
-
-        throw new UnsupportedOperationException("Not implemented");
-
+        // Check if pageno is in the page_mapping
+        if (page_mapping.containsKey(pageno.pid)){
+            int index = page_mapping.get(pageno.pid);
+            
+            // Check if page is dirty
+            if (frametab[index].getDirty()) {
+                // Write page to disk
+                Minibase.DiskManager.write_page(pageno, buffer_pool[index]);
+                // Set dirty bit to false
+                frametab[index].setDirty(false); 
+            }
+        } else {
+            throw new IllegalArgumentException("pageno is not in the buffer pool");
+        }
     }
 
     /**
