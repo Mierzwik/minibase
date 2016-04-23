@@ -40,7 +40,12 @@ public class BufMgr implements GlobalConst {
 
         buffer_pool = new Page[numframes];
         frametab = new FrameDesc[numframes];
+        page_mapping = new HashMap<>();
 
+        for (int i = 0; i < numframes; i++) {
+            buffer_pool[i] = new Page();
+            frametab[i] = new FrameDesc(i);
+        }
     } // public BufMgr(int numframes)
 
     /**
