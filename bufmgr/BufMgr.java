@@ -28,7 +28,6 @@ public class BufMgr implements GlobalConst {
     private Page buffer_pool[];
     private FrameDesc frametab[];
 
-    // page_mapping will map a page frame number to the frametab index
     private HashMap<Integer, Integer> page_mapping;
 
     /**
@@ -78,8 +77,31 @@ public class BufMgr implements GlobalConst {
      * @throws IllegalStateException    if all pages are pinned (i.e. pool is full)
      */
     public void pinPage(PageId pageno, Page mempage, int contents) {
-
-        throw new UnsupportedOperationException("Not implemented");
+        
+        if (page_mapping.containsKey(pageno.pid)) {
+            // If this is already in the buffer pool, just increment pin count
+            frametab[page_mapping.get(pageno.pid)].increment_pin_count(); 
+        } else {
+            // Otherwise we need to find space in our buffer pool for the page depending on what contents is
+            switch (contents) {
+                case PIN_DISKIO:
+                    // Read the page from disk into the frame
+                    
+                    break;
+                case PIN_MEMCPY:
+                    // copy mempage into the frame
+                    
+                    break;
+                case PIN_NOOP:
+                    // Copy nothing into the frame - the frame contents are irrelevant
+                    
+                    break;
+                default:
+                    // content argument contained an invalid value...
+                    throw new IllegalArgumentException("contents argument did not contain a valid value");
+            }
+        }
+        
 
     } // public void pinPage(PageId pageno, Page page, int contents)
 
