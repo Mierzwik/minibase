@@ -28,6 +28,7 @@ public class BufMgr implements GlobalConst {
     private Page buffer_pool[];
     private FrameDesc frametab[];
 
+    // page_mapping will map a PageID.pid to the frametab and buffer_pool index
     private HashMap<Integer, Integer> page_mapping;
 
     /**
@@ -77,7 +78,9 @@ public class BufMgr implements GlobalConst {
      * @throws IllegalStateException    if all pages are pinned (i.e. pool is full)
      */
     public void pinPage(PageId pageno, Page mempage, int contents) {
-        
+        if (this.getNumUnpinned() == 0) {
+            throw new IllegalStateException("All pages are pinned, the pool is full");
+        }
         if (page_mapping.containsKey(pageno.pid)) {
             // If this is already in the buffer pool, just increment pin count
             frametab[page_mapping.get(pageno.pid)].increment_pin_count(); 
