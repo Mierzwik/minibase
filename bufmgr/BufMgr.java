@@ -168,11 +168,18 @@ public class BufMgr implements GlobalConst {
 
     /**
      * Gets the total number of unpinned buffer frames.
+     * 
+     * @return Returns the number of unpinned frames
      */
     public int getNumUnpinned() {
 
-        throw new UnsupportedOperationException("Not implemented");
-
+        int count = 0;
+        for (FrameDesc frame : frametab) {
+            if (frame.getPin_count() == 0) {
+                count++;
+            }
+        }
+        return count;
     }
 
 } // public class BufMgr implements GlobalConst
