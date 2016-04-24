@@ -92,6 +92,7 @@ public class BufMgr implements GlobalConst {
             mempage.copyPage(buffer_pool[index]);
             frametab[index].increment_pin_count(); 
         } else {
+            int temp = this.findInvalidFrame();
             int index = -1;
             if (isFull) {
                 try {
@@ -103,7 +104,7 @@ public class BufMgr implements GlobalConst {
                     flushPage(new PageId(index));
                 }
             } else {
-                index = this.findInvalidFrame();
+                index = temp;
             }
             switch (contents) {
                 case PIN_DISKIO:
@@ -129,6 +130,11 @@ public class BufMgr implements GlobalConst {
                     break;
                 case PIN_NOOP:
                     // Copy nothing into the frame - the frame contents are irrelevant
+                    
+                    PageId newPId = new PageId(this.findInvalidFrame());
+                    page_mapping.put(newPId.pid, index);
+                    frametab[index].increment_pin_count(); 
+                    frametab[index].setpage_number(newPId.pid);
                     break;
                 default:
                     // content argument contained an invalid value...
@@ -152,6 +158,8 @@ public class BufMgr implements GlobalConst {
                 return i;
             }
         }
+        // No invalid frames were found, buffer is full
+        isFull = true;
         return id;
     } // public int findInvalidFrame()
     
@@ -196,8 +204,10 @@ public class BufMgr implements GlobalConst {
             return null;
         }
         PageId newPage = new PageId();
-        Minibase.DiskManager.allocate_page(run_size);
+        newPage = Minibase.DiskManager.allocate_page(run_size);
         pinPage(newPage, firstpg, PIN_DISKIO);
+        
+
         return newPage;
 } // public PageId newPage(Page firstpg, int run_size)
 

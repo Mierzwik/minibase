@@ -10,9 +10,21 @@ public class Clock {
     
     public int pickVictim() {
         
-        for (int counter = 0; counter < buf.frametab.length * 2; counter++) {
-            
+        for (int i = 0; i <= 1; i++) {
+            for (FrameDesc frame : buf.frametab) {
+                if (frame.getPin_count() == 0) {
+                    if (frame.getPage_number() == -1) {
+                        return frame.getPage_number();
+                    }
+
+                    if (frame.getReference_bit()) {
+                        frame.setReference_bit(false); 
+                    } else {
+                        return frame.getPage_number();
+                    }
+                }
+            }
         }
-        return 1;
+        throw new IllegalStateException();
     }
 }
