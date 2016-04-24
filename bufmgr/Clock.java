@@ -12,15 +12,15 @@ public class Clock {
         
         for (int i = 0; i <= 1; i++) {
             for (FrameDesc frame : buf.frametab) {
-                if (frame.getPin_count() == 0) {
-                    if (frame.getPage_number() == -1) {
-                        return frame.getPage_number();
-                    }
+                //if (buf.buffer_pool[buf.page_mapping.get(frame.getPage_number())].getData() == null) {
+                //    return buf.page_mapping.get(frame.getPage_number());
+                //}
 
+                if (frame.getPin_count() == 0) {
                     if (frame.getReference_bit()) {
                         frame.setReference_bit(false); 
                     } else {
-                        return frame.getPage_number();
+                        return buf.page_mapping.get(frame.getPage_number());
                     }
                 }
             }

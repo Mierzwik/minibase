@@ -1,12 +1,13 @@
 package bufmgr;
 
-import global.GlobalConst;
-import global.Minibase;
-import global.Page;
-import global.PageId;
+import global.*;
 //import diskmgr.*;
 
+import javax.xml.crypto.dsig.keyinfo.KeyValue;
+import java.awt.*;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
 /**
  * Minibase Buffer Manager
@@ -25,7 +26,7 @@ import java.util.HashMap;
  */
 public class BufMgr implements GlobalConst {
 
-    private Page buffer_pool[];
+    protected Page buffer_pool[];
     protected FrameDesc frametab[];
 
     // page_mapping will map a PageID.pid to the frametab and buffer_pool index
@@ -83,18 +84,18 @@ public class BufMgr implements GlobalConst {
      * @throws IllegalStateException    if all pages are pinned (i.e. pool is full)
      */
     public void pinPage(PageId pageno, Page mempage, int contents) {
-        
+
         if (page_mapping.containsKey(pageno.pid)) {
             int index = page_mapping.get(pageno.pid);
             //
             // Not sure if we should use copyPage or setPage here
             //
-            mempage.copyPage(buffer_pool[index]);
+            mempage.setPage(buffer_pool[index]);
             frametab[index].increment_pin_count(); 
         } else {
             int temp = this.findInvalidFrame();
             int index = -1;
-            if (isFull) {
+            if (page_mapping.size() == 10) {
                 try {
                     index = replace.pickVictim();
                 } catch (IllegalStateException exception) {
@@ -106,6 +107,7 @@ public class BufMgr implements GlobalConst {
             } else {
                 index = temp;
             }
+
             switch (contents) {
                 case PIN_DISKIO:
                     // Read the page from disk into the frame
@@ -114,27 +116,44 @@ public class BufMgr implements GlobalConst {
                     //
                     // Try removing mempage.copyPage later
                     //
-                    mempage.copyPage(tempPage); 
-                    buffer_pool[index].copyPage(tempPage); 
+
+                    removeMappingAndFlush(index);
+                    mempage.setPage(tempPage);
+                    buffer_pool[index].setPage(tempPage);
+
+
                     page_mapping.put(pageno.pid, index);
+
                     frametab[index].increment_pin_count();
                     frametab[index].setpage_number(pageno.pid); 
                     
                     break;
                 case PIN_MEMCPY:
                     // copy mempage into the frame
-                    buffer_pool[index].copyPage(mempage); 
+                    buffer_pool[index].setPage(mempage);
+
+                    removeMappingAndFlush(index);
                     page_mapping.put(pageno.pid, index);
+
                     frametab[index].increment_pin_count();
                     frametab[index].setpage_number(pageno.pid); 
                     break;
                 case PIN_NOOP:
                     // Copy nothing into the frame - the frame contents are irrelevant
                     
-                    PageId newPId = new PageId(this.findInvalidFrame());
+                    PageId newPId = new PageId(pageno.pid);
+
+                    removeMappingAndFlush(index);
                     page_mapping.put(newPId.pid, index);
+
                     frametab[index].increment_pin_count(); 
                     frametab[index].setpage_number(newPId.pid);
+
+
+
+                    mempage.setPage(buffer_pool[page_mapping.get(pageno.pid)]);
+                    //buffer_pool[page_mapping.get(pageno.pid)].setPage(mempage);
+                    //buffer_pool[index].setPage(mempage);
                     break;
                 default:
                     // content argument contained an invalid value...
@@ -144,6 +163,27 @@ public class BufMgr implements GlobalConst {
         
 
     } // public void pinPage(PageId pageno, Page page, int contents)
+
+    private void removeMappingAndFlush(int index) {
+        int pageToFlush = 0;
+        Iterator it = page_mapping.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry pair = (Map.Entry)it.next();
+
+            if (pair.getValue() == index){
+
+                if (pair.getKey() == 10){
+                    System.out.print("");
+                }
+                pageToFlush = (Integer)pair.getKey();
+                flushPage(new PageId(pageToFlush));
+                it.remove();
+            }
+
+        }
+
+
+    }
 
     /**
      * Find an invalid frame to use
@@ -160,7 +200,7 @@ public class BufMgr implements GlobalConst {
         }
         // No invalid frames were found, buffer is full
         isFull = true;
-        return id;
+        return 1;
     } // public int findInvalidFrame()
     
     /**
@@ -200,9 +240,11 @@ public class BufMgr implements GlobalConst {
      * @throws IllegalStateException    if all pages are pinned (i.e. pool exceeded)
      */
     public PageId newPage(Page firstpg, int run_size) {
-        if (isFull) {
-            return null;
-        }
+        findInvalidFrame();
+
+        //if (isFull) {
+        //    return null;
+        //}
         PageId newPage = new PageId();
         newPage = Minibase.DiskManager.allocate_page(run_size);
         pinPage(newPage, firstpg, PIN_DISKIO);
@@ -223,14 +265,20 @@ public class BufMgr implements GlobalConst {
             if (frametab[index].getPin_count() > 0) {
                 throw new IllegalArgumentException("Page is pinned");
             }
-            
+
+            //buffer_pool[index].setData(new byte[1024]);
+
             // deallocate the page
             Minibase.DiskManager.deallocate_page(pageno);
-            // Remove from page_mapping
-            page_mapping.remove(pageno.pid);
-            
-            if (isFull) {
-                isFull = false;
+            if (page_mapping.containsKey(pageno.pid)) {
+                frametab[page_mapping.get(pageno.pid)] = new FrameDesc();
+                // Remove from page_mapping
+                page_mapping.remove(pageno.pid);
+
+                if (isFull) {
+                    isFull = false;
+                }
+
             }
         }
         
@@ -258,16 +306,22 @@ public class BufMgr implements GlobalConst {
      */
     public void flushPage(PageId pageno) {
         // Check if pageno is in the page_mapping
-        if (page_mapping.containsKey(pageno.pid)){
+        if (page_mapping.containsKey(pageno.pid)) {
+
             int index = page_mapping.get(pageno.pid);
-            
-            // Check if page is dirty
-            if (frametab[index].getDirty()) {
-                // Write page to disk
-                Minibase.DiskManager.write_page(pageno, buffer_pool[index]);
-                // Set dirty bit to false
-                frametab[index].setDirty(false); 
+
+            if (pageno.pid == 12) {
+                int badValue = Convert.getIntValue(0, buffer_pool[index].getData());
+                System.out.print("");
             }
+
+            // Check if page is dirty
+            //if (frametab[index].getDirty()) {
+            // Write page to disk
+            Minibase.DiskManager.write_page(pageno, buffer_pool[index]);
+            // Set dirty bit to false
+            frametab[index].setDirty(false);
+            //}
         } else {
             throw new IllegalArgumentException("pageno is not in the buffer pool");
         }
