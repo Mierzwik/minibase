@@ -7,17 +7,26 @@ public class FrameDesc {
     private int pin_count;
     private boolean reference_bit;
 
-    FrameDesc(int pageNum) {
-        this.page_number = pageNum;
+    FrameDesc() {
+        this.page_number = -1;
         this.dirty = false;
         this.pin_count = 0;
-        reference_bit = false;
+        this.reference_bit = false;
     }
     /**
      * Returns the current page_number
      */
     int getPage_number() {
         return this.page_number;
+    }
+    
+    /**
+     * Set the page number
+     * 
+     * @param pageno 
+     */
+    void setpage_number(int pageno) {
+        this.page_number = pageno;
     }
 
     /**
