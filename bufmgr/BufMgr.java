@@ -26,10 +26,10 @@ import java.util.HashMap;
 public class BufMgr implements GlobalConst {
 
     private Page buffer_pool[];
-    private FrameDesc frametab[];
+    protected FrameDesc frametab[];
 
     // page_mapping will map a PageID.pid to the frametab and buffer_pool index
-    private HashMap<Integer, Integer> page_mapping;
+    protected HashMap<Integer, Integer> page_mapping;
     
     // isFull keeps track of if the buffer is full
     private boolean isFull;
@@ -45,7 +45,7 @@ public class BufMgr implements GlobalConst {
         frametab = new FrameDesc[numframes];
         page_mapping = new HashMap<>();
         isFull = false;
-        replace = new Clock();
+        replace = new Clock(this);
         
         for (int i = 0; i < numframes; i++) {
             buffer_pool[i] = new Page();
@@ -146,10 +146,10 @@ public class BufMgr implements GlobalConst {
      */
     public int findInvalidFrame() {
         int id = -1;
-        for(FrameDesc frame : frametab) {
-            id = frame.getPage_number();
+        for(int i = 0; i < frametab.length; i++) {
+            id = frametab[i].getPage_number();
             if (id == -1) {
-                return id;
+                return i;
             }
         }
         return id;
@@ -164,7 +164,7 @@ public class BufMgr implements GlobalConst {
      *                                  or not pinned
      */
     public void unpinPage(PageId pageno, boolean dirty) {
-        if (!page_mapping.containsKey(pageno.pid) || frametab[page_mapping.get(pageno.pid)].getPin_count() > 0 ) {
+        if (!page_mapping.containsKey(pageno.pid) || frametab[page_mapping.get(pageno.pid)].getPin_count() == 0 ) {
             throw new IllegalArgumentException("Page is not in the buffer pool or not pinned");
         }
         if (dirty == UNPIN_DIRTY) {
