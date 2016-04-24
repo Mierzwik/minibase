@@ -175,6 +175,9 @@ public class BufMgr implements GlobalConst {
             }
         }
         frametab[page_mapping.get(pageno.pid)].decrement_pin_count();
+        if (frametab[page_mapping.get(pageno.pid)].getPin_count() == 0) {
+            frametab[page_mapping.get(pageno.pid)].setReference_bit(true);
+        }
     } // public void unpinPage(PageId pageno, boolean dirty)
 
     /**
