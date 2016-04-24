@@ -181,8 +181,12 @@ public class BufMgr implements GlobalConst {
      * @throws IllegalStateException    if all pages are pinned (i.e. pool exceeded)
      */
     public PageId newPage(Page firstpg, int run_size) {
-        // I don't think this method is complete yet. 
-        PageId newPage = Minibase.DiskManager.allocate_page(run_size);
+        if (isFull) {
+            return null;
+        }
+        PageId newPage = new PageId();
+        Minibase.DiskManager.allocate_page(run_size);
+        pinPage(newPage, firstpg, PIN_DISKIO);
         return newPage;
 } // public PageId newPage(Page firstpg, int run_size)
 
