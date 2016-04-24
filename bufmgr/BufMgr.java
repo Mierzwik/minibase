@@ -164,9 +164,17 @@ public class BufMgr implements GlobalConst {
      *                                  or not pinned
      */
     public void unpinPage(PageId pageno, boolean dirty) {
-
-        throw new UnsupportedOperationException("Not implemented");
-
+        if (!page_mapping.containsKey(pageno.pid) || frametab[page_mapping.get(pageno.pid)].getPin_count() > 0 ) {
+            throw new IllegalArgumentException("Page is not in the buffer pool or not pinned");
+        }
+        if (dirty == UNPIN_DIRTY) {
+            try {
+            this.flushPage(pageno);
+            } catch(IllegalArgumentException e) {
+                throw e;
+            }
+        }
+        frametab[page_mapping.get(pageno.pid)].decrement_pin_count();
     } // public void unpinPage(PageId pageno, boolean dirty)
 
     /**
@@ -208,6 +216,9 @@ public class BufMgr implements GlobalConst {
             // Remove from page_mapping
             page_mapping.remove(pageno.pid);
             
+            if (isFull) {
+                isFull = false;
+            }
         }
         
 
