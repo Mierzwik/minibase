@@ -31,9 +31,7 @@ public class BufMgr implements GlobalConst {
 
     // page_mapping will map a PageID.pid to the frametab and buffer_pool index
     protected HashMap<Integer, Integer> page_mapping;
-    
-    // isFull keeps track of if the buffer is full
-    private boolean isFull;
+
     private Clock replace;
     /**
      * Constructs a buffer manager by initializing member data.
@@ -45,7 +43,6 @@ public class BufMgr implements GlobalConst {
         buffer_pool = new Page[numframes];
         frametab = new FrameDesc[numframes];
         page_mapping = new HashMap<>();
-        isFull = false;
         replace = new Clock(this);
         
         for (int i = 0; i < numframes; i++) {
@@ -181,7 +178,6 @@ public class BufMgr implements GlobalConst {
             }
         }
         // No invalid frames were found, buffer is full
-        isFull = true;
         return replace.pickVictim();
     } // public int findInvalidFrame()
     
@@ -251,9 +247,6 @@ public class BufMgr implements GlobalConst {
                 // Remove from page_mapping
                 page_mapping.remove(pageno.pid);
 
-                if (isFull) {
-                    isFull = false;
-                }
 
             }
         }
