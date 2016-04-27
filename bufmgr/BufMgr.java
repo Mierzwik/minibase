@@ -87,15 +87,12 @@ public class BufMgr implements GlobalConst {
 
         if (page_mapping.containsKey(pageno.pid)) {
             int index = page_mapping.get(pageno.pid);
-            //
-            // Not sure if we should use copyPage or setPage here
-            //
             mempage.setPage(buffer_pool[index]);
             frametab[index].increment_pin_count(); 
         } else {
             int temp = this.findInvalidFrame();
             int index = -1;
-            if (page_mapping.size() == 10) {
+            if (page_mapping.size() == frametab.length) {
                 try {
                     index = replace.pickVictim();
                 } catch (IllegalStateException exception) {
@@ -171,10 +168,6 @@ public class BufMgr implements GlobalConst {
             Map.Entry pair = (Map.Entry)it.next();
 
             if (pair.getValue() == index){
-
-                if (pair.getKey() == 10){
-                    System.out.print("");
-                }
                 pageToFlush = (Integer)pair.getKey();
                 flushPage(new PageId(pageToFlush));
                 it.remove();
