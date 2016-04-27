@@ -15,6 +15,9 @@ public class Clock {
                 //if (buf.buffer_pool[buf.page_mapping.get(frame.getPage_number())].getData() == null) {
                 //    return buf.page_mapping.get(frame.getPage_number());
                 //}
+                if (frame.getPage_number() == -1) {
+                    return buf.page_mapping.get(frame.getPage_number());
+                }
 
                 if (frame.getPin_count() == 0) {
                     if (frame.getReference_bit()) {
